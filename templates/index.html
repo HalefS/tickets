@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservation Ticket Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600&family=Montserrat:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: #f0f0eb;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .container {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 48px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .logo {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 30px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: #111;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 40px;
+  }
+
+  .drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    padding: 40px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #111;
+    background: #fafafa;
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon { font-size: 34px; margin-bottom: 12px; }
+
+  .drop-text { font-size: 13px; color: #444; font-weight: 600; margin-bottom: 4px; }
+
+  .drop-hint { font-size: 11px; color: #bbb; letter-spacing: 0.05em; }
+
+  .file-selected {
+    display: none;
+    margin-top: 14px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #111;
+    text-align: left;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .file-selected.visible { display: flex; }
+
+  .btn {
+    background: #111;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+
+  .btn:hover { background: #333; }
+  .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+  .status {
+    margin-top: 18px;
+    font-size: 12px;
+    color: #666;
+    min-height: 20px;
+  }
+
+  .error { color: #c0392b; font-weight: 600; }
+
+  .spinner {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 2px solid #ddd;
+    border-top-color: #111;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .info {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #eee;
+    font-size: 11px;
+    color: #bbb;
+    line-height: 2;
+    text-align: left;
+  }
+
+  .info strong { color: #888; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">TICKETS</div>
+  <div class="subtitle">Reservation Ticket Generator · resOS</div>
+
+  <form id="uploadForm">
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".mhtml,.mht" />
+      <div class="drop-icon">📄</div>
+      <div class="drop-text">Drop your resOS file here</div>
+      <div class="drop-hint">or click to browse · .mhtml format</div>
+    </div>
+
+    <div class="file-selected" id="fileSelected">
+      <span>📎</span>
+      <span id="fileName"></span>
+    </div>
+
+    <button type="submit" class="btn" id="submitBtn" disabled>
+      Generate Tickets
+    </button>
+  </form>
+
+  <div class="status" id="status"></div>
+
+  <div class="info">
+    <strong>How to use:</strong><br>
+    1. Open resOS and go to the booking list<br>
+    2. Save the page as <em>Webpage, Single File (.mhtml)</em><br>
+    3. Upload the file — tickets open in a new tab ready to print<br><br>
+    <strong>Note:</strong> Keep the default filename format:<br>
+    <em>Restaurant Name - resOS.mhtml</em>
+  </div>
+</div>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileSelected = document.getElementById('fileSelected');
+  const fileName = document.getElementById('fileName');
+  const submitBtn = document.getElementById('submitBtn');
+  const status = document.getElementById('status');
+  const form = document.getElementById('uploadForm');
+
+  function setFile(file) {
+    fileName.textContent = file.name;
+    fileSelected.classList.add('visible');
+    submitBtn.disabled = false;
+    status.innerHTML = '';
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) setFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+      setFile(file);
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!fileInput.files.length) return;
+
+    submitBtn.disabled = true;
+    status.innerHTML = '<span class="spinner"></span> Parsing reservations...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const response = await fetch('/generate', { method: 'POST', body: formData });
+      const data = await response.json();
+
+      if (!response.ok) {
+        status.innerHTML = `<span class="error">⚠ ${data.error}</span>`;
+        submitBtn.disabled = false;
+        return;
+      }
+
+      // Open the generated HTML in a new tab
+      const blob = new Blob([data.html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+
+      status.innerHTML = `✓ Opened <strong>${data.count}</strong> tickets for <strong>${data.restaurant}</strong> — print from the new tab.`;
+      submitBtn.disabled = false;
+
+    } catch (err) {
+      status.innerHTML = `<span class="error">⚠ Error: ${err.message}</span>`;
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
